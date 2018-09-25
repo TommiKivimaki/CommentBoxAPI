@@ -4,12 +4,13 @@ import Vapor
 public func routes(_ router: Router) throws {
     // Basic "Hello, world!" example
     router.get("hello") { req in
-        return "Hello, world!"
+        return "Hello! I'm running the API for the Comment Box"
     }
 
-    // Example of configuring a controller
-    let todoController = TodoController()
-    router.get("todos", use: todoController.index)
-    router.post("todos", use: todoController.create)
-    router.delete("todos", Todo.parameter, use: todoController.delete)
+  router.post("api", "comments") { req -> Future<UserComment> in
+    return try req.content.decode(UserComment.self).flatMap(to: UserComment.self, { comment in
+      return comment.save(on: req)
+    })
+  }
+
 }
