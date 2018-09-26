@@ -15,4 +15,9 @@ final class UserComment: Codable {
 extension UserComment: SQLiteModel {}
 extension UserComment: Migration {}
 extension UserComment: Content {}
+extension UserComment: Equatable {
+  static func ==(lhs: UserComment, rhs: UserComment) -> Bool {
+    return lhs.timestamp == rhs.timestamp && lhs.comment == rhs.comment
+  }
+}
 
