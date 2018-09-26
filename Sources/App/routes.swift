@@ -2,7 +2,6 @@ import Vapor
 
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
-    // Basic "Hello, world!" example
     router.get("hello") { req in
         return "Hello! I'm running the API for the Comment Box"
     }
@@ -13,4 +12,7 @@ public func routes(_ router: Router) throws {
     })
   }
 
+  router.get("api", "comments") { req -> Future<[UserComment]> in
+    return UserComment.query(on: req).all()
+  }
 }
