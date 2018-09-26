@@ -13,9 +13,19 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
   
   /// Register middleware
   var middlewares = MiddlewareConfig() // Create _empty_ middleware config
-  /// middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
-  middlewares.use(ErrorMiddleware.self) // Catches errors and converts to HTTP response
+  let corsConfiguration = CORSMiddleware.Configuration(
+    allowedOrigin: .all,
+    allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
+    allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent, .accessControlAllowOrigin]
+  )
+  let corsMiddleware = CORSMiddleware(configuration: corsConfiguration)
+  middlewares.use(corsMiddleware)
+  // middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
+  middlewares.use(ErrorMiddleware.self)
   services.register(middlewares)
+  
+  
+
   
   // Configure a SQLite database
   let sqlite = try SQLiteDatabase(storage: .memory)
