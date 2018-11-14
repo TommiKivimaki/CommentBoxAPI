@@ -1,5 +1,5 @@
 import Vapor
-import FluentSQLite
+import FluentPostgreSQL
 
 final class UserComment: Codable {
   var id: Int?
@@ -12,7 +12,7 @@ final class UserComment: Codable {
   }
 }
 
-extension UserComment: SQLiteModel {}
+extension UserComment: PostgreSQLModel {}
 extension UserComment: Migration {}
 extension UserComment: Content {}
 extension UserComment: Equatable {
