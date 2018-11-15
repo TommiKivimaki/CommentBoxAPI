@@ -6,6 +6,8 @@ struct UserCommentsController: RouteCollection {
   // Register routes when the controller boots
   func boot(router: Router) throws {
     
+    router.get("hello", use: getHelloHandler)
+    
     // Create a group for /api/comments/ path to make maintenance easier
     let userCommentsRoutes = router.grouped("api", "comments")
     
@@ -18,6 +20,11 @@ struct UserCommentsController: RouteCollection {
     userCommentsRoutes.get("searchor", use: searchOrHandler)
     userCommentsRoutes.get("first", use: getFirstHandler)
     userCommentsRoutes.get("sorted", use: sortedHandler)
+  }
+  
+  /// Returns "Hello"
+  func getHelloHandler(_ req: Request) -> String {
+     return "Hello! I'm the API who runs Comment Box"
   }
   
   /// GETs all comments
