@@ -20,4 +20,5 @@ extension UserComment: Equatable {
     return lhs.timestamp == rhs.timestamp && lhs.comment == rhs.comment
   }
 }
+extension UserComment: Parameter {}
 
