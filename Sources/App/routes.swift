@@ -4,13 +4,9 @@ import Fluent
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
   
-  // Register UserCommentsController that will handle the routes
+  // Register controller that will handle the routes
   let userCommentsController = UserCommentsController()
   try router.register(collection: userCommentsController)
-  
-  // Register UsersController
-  let usersController = UsersController()
-  try router.register(collection: usersController)
   
   /// GET a greeting
 //  router.get("hello") { req in

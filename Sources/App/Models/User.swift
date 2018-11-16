@@ -17,4 +17,8 @@ extension User: PostgreSQLUUIDModel {}
 extension User: Content {}
 extension User: Migration {}
 extension User: Parameter {}
-
+extension User {
+  var userComments: Children<User, UserComment> {
+    return children(\.userID)
+  }
+}

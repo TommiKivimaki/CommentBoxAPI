@@ -6,8 +6,6 @@ struct UserCommentsController: RouteCollection {
   // Register routes when the controller boots
   func boot(router: Router) throws {
     
-    router.get("hello", use: getHelloHandler)
-    
     // Create a group for /api/comments/ path to make maintenance easier
     let userCommentsRoutes = router.grouped("api", "comments")
     
@@ -20,12 +18,6 @@ struct UserCommentsController: RouteCollection {
     userCommentsRoutes.get("searchor", use: searchOrHandler)
     userCommentsRoutes.get("first", use: getFirstHandler)
     userCommentsRoutes.get("sorted", use: sortedHandler)
-    userCommentsRoutes.get(UserComment.parameter, "user", use: getUserHandler)
-  }
-  
-  /// Returns "Hello"
-  func getHelloHandler(_ req: Request) -> String {
-    return "Hello! I'm the API who runs Comment Box"
   }
   
   /// GETs all comments
@@ -53,7 +45,6 @@ struct UserCommentsController: RouteCollection {
                         
                         userComment.timestamp = updateUserComment.timestamp
                         userComment.comment = updateUserComment.comment
-                        userComment.userID = updateUserComment.userID
                         
                         return userComment.save(on: req)
     }
@@ -100,14 +91,6 @@ struct UserCommentsController: RouteCollection {
     return UserComment.query(on: req)
       .sort(\.comment, .ascending)   // Defines the properties that's the base in sorting
       .all()
-  }
-  
-  /// Get the parent a.k.a user of the comment
-  func getUserHandler(_ req: Request) throws -> Future<User> {
-    return try req.parameters.next(UserComment.self)
-      .flatMap(to: User.self) { userComment in
-        userComment.user.get(on: req)
-      }
   }
   
 }
