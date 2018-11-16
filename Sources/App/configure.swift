@@ -23,13 +23,6 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
   // middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
   middlewares.use(ErrorMiddleware.self)
   services.register(middlewares)
-  
-  
-//  var databases = DatabasesConfig()
-//  let databaseConfig = PostgreSQLDatabaseConfig(hostname: "localhost", username: "vapor", database: "vapor", password: "R4RXzEMDpNMO")
-//  let database = PostgreSQLDatabase(config: databaseConfig)
-//  databases.add(database: database, as: .psql)
-//  services.register(databases)
 
   /// Configure database for Vapor Cloud deployment
   var databases = DatabasesConfig()
@@ -45,7 +38,13 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
   
   /// Configure migrations
   var migrations = MigrationConfig()
+  migrations.add(model: User.self, database: .psql)
   migrations.add(model: UserComment.self, database: .psql)
   services.register(migrations)
+  
+  /// Adds 'revert' and 'migrate' commands to config. 'revert' wipes the DB, 'migrate' does migration.
+  var commandConfig = CommandConfig.default()
+  commandConfig.useFluentCommands()
+  services.register(commandConfig)
   
 }
