@@ -5,10 +5,12 @@ final class UserComment: Codable {
   var id: Int?
   var timestamp: String
   var comment: String
+  var userID: User.ID
   
-  init(timestamp: String, user comment: String) {
+  init(timestamp: String, user comment: String, userID: User.ID) {
     self.timestamp = timestamp
     self.comment = comment
+    self.userID = userID
   }
 }
 
@@ -21,4 +23,11 @@ extension UserComment: Equatable {
   }
 }
 extension UserComment: Parameter {}
+
+// Adds a computed property that returns Fluents generic Parent type using Fluents parent( :) function
+extension UserComment {
+  var user: Parent<UserComment, User> {
+    return parent(\.userID)
+  }
+}
 
