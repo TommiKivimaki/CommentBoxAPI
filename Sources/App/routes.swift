@@ -12,6 +12,10 @@ public func routes(_ router: Router) throws {
   let usersController = UsersController()
   try router.register(collection: usersController)
   
+  // Register CategoriesController
+  let categoriesController = CategoriesController()
+  try router.register(collection: categoriesController)
+  
   /// GET a greeting
 //  router.get("hello") { req in
 //    return "Hello! I'm running the API for the Comment Box"

@@ -21,6 +21,9 @@ struct UserCommentsController: RouteCollection {
     userCommentsRoutes.get("first", use: getFirstHandler)
     userCommentsRoutes.get("sorted", use: sortedHandler)
     userCommentsRoutes.get(UserComment.parameter, "user", use: getUserHandler)
+    userCommentsRoutes.post(UserComment.parameter, "categories", Category.parameter, use: addCategoriesHandler)
+    userCommentsRoutes.get(UserComment.parameter, "categories", use: getCategoriesHandler)
+    userCommentsRoutes.delete(UserComment.parameter, "categories", Category.parameter, use: removeCategoriesHandler)
   }
   
   /// Returns "Hello"
@@ -107,7 +110,37 @@ struct UserCommentsController: RouteCollection {
     return try req.parameters.next(UserComment.self)
       .flatMap(to: User.self) { userComment in
         userComment.user.get(on: req)
-      }
+    }
+  }
+  
+  /// Get categories
+  func addCategoriesHandler(_ req: Request) throws -> Future<HTTPStatus> {
+    return try flatMap(to: HTTPStatus.self,
+                       req.parameters.next(UserComment.self),
+                       req.parameters.next(Category.self)) { userComment, category in
+                        return userComment.categories
+                          .attach(category, on: req)
+                          .transform(to: .created)
+    }
+  }
+  
+  /// Query sibling relationship
+  func getCategoriesHandler(_ req: Request) throws -> Future<[Category]> {
+    return try req.parameters.next(UserComment.self)
+      .flatMap(to: [Category].self) { userComment in
+        try userComment.categories.query(on: req).all()
+    }
+  }
+  
+  // Remove the sibling relationship
+  func removeCategoriesHandler(_ req: Request) throws -> Future<HTTPStatus> {
+    return try flatMap(to: HTTPStatus.self,
+                       req.parameters.next(UserComment.self),
+                       req.parameters.next(Category.self)) { userComment, category in
+                        return userComment.categories
+                          .detach(category, on: req)
+                          .transform(to: .noContent)
+    }
   }
   
 }

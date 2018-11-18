@@ -41,5 +41,10 @@ extension UserComment: Migration {
       builder.reference(from: \.userID, to: \User.id)
     }
   }
+  
+  // For the Pivot relationships
+  var categories: Siblings<UserComment, Category, UserCommentCategoryPivot> {
+    return siblings()  // Fluent returns all the categories of a comment
+  }
 }
 
