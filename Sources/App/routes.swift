@@ -16,6 +16,10 @@ public func routes(_ router: Router) throws {
   let categoriesController = CategoriesController()
   try router.register(collection: categoriesController)
   
+  // Register websiteController
+  let websiteController = WebsiteController()
+  try router.register(collection: websiteController)
+  
   /// GET a greeting
 //  router.get("hello") { req in
 //    return "Hello! I'm running the API for the Comment Box"

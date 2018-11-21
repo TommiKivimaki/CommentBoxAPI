@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>#(title) | from CommentBox API</title>
+  </head>
+  
+  <body>
+    <h1>Web App for Comment Box API</h1>
+    
+    #if(userComments) {
+    <table>
+      
+      <thead>
+        <tr>Table of Comments</tr>
+      </thead>
+      
+      <tbody>
+        
+        #for(userComment in userComments) {
+        <tr>
+          <td><a href="/comments/#(userComment.id)">#(userComment.comment)</a></td>
+        </tr>
+        }
+        
+      </tbody>
+    </table>
+    
+    } else {
+      <h2>There are no comments yet</h2>
+    }
+  
+  </body>
+  
+</html>

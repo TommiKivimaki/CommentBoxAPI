@@ -1,0 +1,16 @@
+version: '3'
+services:
+  commentboxapi:
+    depends_on:
+      - postgres
+    build: .
+    environment:
+      - DATABASE_HOSTNAME=postgres
+      - DATABASE_PORT=5432
+  postgres:
+    image: "postgres"
+#    container_name: postgres
+    environment:
+      - POSTGRES_DB=vapor-test
+      - POSTGRES_USER=vapor
+      - POSTGRES_PASSWORD=R4RXzEMDpNMO

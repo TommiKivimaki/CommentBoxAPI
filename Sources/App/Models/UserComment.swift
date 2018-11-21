@@ -7,9 +7,11 @@ final class UserComment: Codable {
   var comment: String
   var userID: User.ID
   
-  init(timestamp: String, user comment: String, userID: User.ID) {
+  // userComment was type user comment
+  init(timestamp: String, userComment: String, userID: User.ID) {
     self.timestamp = timestamp
-    self.comment = comment
+//    self.comment = comment
+    self.comment = userComment
     self.userID = userID
   }
 }
