@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>#(title) | from CommentBox API</title>
-  </head>
-  
-  <body>
-    
-    <h1>#(userComment.comment)</h1>
-    <p>Written by #(user.name)</p>
-    <p><i>Timestamp: #(timestamp)</i></p>
-    
-  </body>
-</html>
+#set("content") {
+<h2>#(userComment.comment)</h2>
+<p>Written by <a href="/users/#(user.id)/">#(user.name)</a></p>
+<p class="small">#(timestamp)</p>
+}
+
+#embed("base")

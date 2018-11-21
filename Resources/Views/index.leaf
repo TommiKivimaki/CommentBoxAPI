@@ -1,35 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>#(title) | from CommentBox API</title>
-  </head>
-  
-  <body>
-    <h1>Web App for Comment Box API</h1>
-    
-    #if(userComments) {
-    <table>
-      
-      <thead>
-        <tr>Table of Comments</tr>
-      </thead>
-      
-      <tbody>
-        
-        #for(userComment in userComments) {
-        <tr>
-          <td><a href="/comments/#(userComment.id)">#(userComment.comment)</a></td>
-        </tr>
-        }
-        
-      </tbody>
-    </table>
-    
-    } else {
-      <h2>There are no comments yet</h2>
+#set("content") {
+
+<img src="/images/comment-box-symbol-2x.png" class="logo mx-auto d-block" alt="Comment Box logo" />
+<h4>Timeline</h4>
+
+#if(userComments) {
+<table class="table table-borderless table-hover">
+  <thead class="thead-light">
+    <tr>
+      <th>Comments</th>
+    </tr>
+  </thead>
+  <tbody>
+    #for(userComment in userComments) {
+    <tr>
+      <td>
+        <a href="comments/#(userComment.id)">#(userComment.comment)</a>
+      </td>
+    </tr>
     }
-  
-  </body>
-  
-</html>
+  </tbody>
+</table>
+} else {
+<h4>There are no comments to display</h4>
+}
+}
+
+#embed("base")
+

@@ -1,0 +1,33 @@
+#set("content") {
+
+<h1>All Comment Box Users</h1>
+
+#if(count(users) > 0) {
+<table class="table table-borderless table-hover">
+  <thead class="thead-light">
+    <tr>
+      <th>Username</th>
+      <th>Name</th>
+    </tr>
+  </thead>
+  <tbody>
+    #for(user in users) {
+    <tr>
+      <td>
+        <a href="/users/#(user.id)">#(user.username)</a>
+      </td>
+      <td>
+        #(user.name)
+      </td>
+    </tr>
+    }
+  </tbody>
+</table>
+} else {
+<h4>There are no users</h4>
+}
+
+}
+
+#embed("base")
+

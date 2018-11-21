@@ -1,0 +1,29 @@
+#set("content") {
+
+<h2>#(user.name)</h2>
+<h4>Username: #(user.username)</h4>
+
+  #if(count(userComments) > 0) {
+  <table class="table table-borderless table-hover">
+    <thead class="thead-light">
+      <tr>
+        <th>User's comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      #for(userComment in userComments) {
+      <tr>
+        <td>
+          <a href="/comments/#(userComment.id)">#(userComment.comment)</a>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  } else {
+  <h4>User has not written any comments</h4>
+  }
+
+}
+
+#embed("base")
