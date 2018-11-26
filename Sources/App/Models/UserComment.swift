@@ -8,8 +8,8 @@ final class UserComment: Codable {
   var userID: User.ID
   
   // userComment was type user comment
-  init(timestamp: String, userComment: String, userID: User.ID) {
-    self.timestamp = timestamp
+  init(timestamp: String?, userComment: String, userID: User.ID) {
+    self.timestamp = timestamp ?? "Ei aikaleimaa"
 //    self.comment = comment
     self.comment = userComment
     self.userID = userID

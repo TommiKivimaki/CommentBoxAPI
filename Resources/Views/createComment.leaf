@@ -1,0 +1,51 @@
+
+#set("content") {
+<h1>#(title)</h1>
+
+<form method="post">
+  
+  <div class="form-group">
+    <label for="userComment">Comment</label>
+    <input type="text" name="comment" class="form-control"
+    id="userComment" #if(editing){value="#(userComment.comment)"}/>
+  </div>
+  
+  <div class="form-group">
+    <label for="timestamp">Timestamp</label>
+    <input type="text" name="timestamp" class="form-control"
+    id="timestamp" #if(editing){value="#(userComment.timestamp)"}/>
+  </div>
+  
+  <div class="form-group">
+    <label for="userID">User</label>
+    
+    <select name="userID" class="form-control" id="userID">
+      
+      #for(user in users) {
+      <option value="#(user.id)">
+        #if(editing){#if(userComment.userID == user.id){selected}}
+        #(user.name)
+      </option>
+      }
+    </select>
+  </div>
+  
+  <div class="form-group">
+    <label for="categories">Categories</label>
+    <select name="categories[]" class="form-control" id="categories" placeholder="Categories" multiple="multiple">
+      #if(editing) {
+      #for(category in categories) {
+      <option value="#(category.name)" selected="selected">
+        #(category.name)
+      </option>
+      }
+      }
+    </select>
+  </div>
+  
+  <button type="submit" class="btn btn-primary">
+    #if(editing){Update} else{Submit}</button>
+</form>
+}
+
+#embed("base")

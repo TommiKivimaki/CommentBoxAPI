@@ -1,3 +1,4 @@
+import Vapor 
 import FluentPostgreSQL
 import Foundation
 
