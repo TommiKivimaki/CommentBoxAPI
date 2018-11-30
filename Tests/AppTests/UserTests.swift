@@ -44,37 +44,42 @@ final class UserTests: XCTestCase {
     let user = try User.create(name: usersName, username: usersUserName, on: conn)
     _ = try User.create(on: conn) // Use the default name and username defined on create() method
     
-    let users = try app.getResponse(to: usersURI, decodeTo: [User].self)
+    let users = try app.getResponse(to: usersURI, decodeTo: [User.Public].self)
     
-    // Check the success
-    XCTAssertEqual(users.count, 2)
-    XCTAssertEqual(users[0].name, usersName)
-    XCTAssertEqual(users[0].username, usersUserName)
-    XCTAssertEqual(users[0].id, user.id)
+    // Check the success, Accounts for the permanent admin users
+    XCTAssertEqual(users.count, 3)
+    XCTAssertEqual(users[1].name, usersName)
+    XCTAssertEqual(users[1].username, usersUserName)
+    XCTAssertEqual(users[1].id, user.id)
 
   }
 
   func testUserCanBeSavedWithAPI() throws {
-    let user = User(name: usersName, username: usersUserName)
+    let user = User(name: usersName, username: usersUserName, password: "password")
     
-    let receivedUser = try app.getResponse(to: usersURI, method: .POST, headers: ["Content-Type": "application/json"], data: user, decodeTo: User.self)
+    let receivedUser = try app.getResponse(to: usersURI, method: .POST,
+                                           headers: ["Content-Type": "application/json"],
+                                           data: user, decodeTo: User.Public.self,
+                                           loggedInRequest: true)
     
-    XCTAssertEqual(user.username, receivedUser.username)
-    XCTAssertEqual(user.name, receivedUser.name)
+    XCTAssertEqual(usersName, receivedUser.name)
+    XCTAssertEqual(usersUserName, receivedUser.username)
     XCTAssertNotNil(receivedUser.id)
     
-    let users = try app.getResponse(to: usersURI, method: .GET, headers: ["Content-Type": "application/json"], decodeTo: [User].self)
+    let users = try app.getResponse(to: usersURI, method: .GET, decodeTo: [User.Public].self)
     
-    XCTAssertEqual(users.count, 1)
-    XCTAssertEqual(users[0].name, user.name)
-    XCTAssertEqual(users[0].username, user.username)
-    XCTAssertEqual(users[0].id, receivedUser.id)
+    // Accounts for the permanen admin user
+    XCTAssertEqual(users.count, 2)
+    XCTAssertEqual(users[1].name, usersName)
+    XCTAssertEqual(users[1].username, usersUserName)
+    XCTAssertEqual(users[1].id, receivedUser.id)
   }
   
   func testGettingASingleUserFromTheAPI() throws {
     let user = try User.create(name: usersName, username: usersUserName, on: conn)
     
-    let receivedUser = try app.getResponse(to: "\(usersURI)/\(user.id!)", decodeTo: User.self)
+    let receivedUser = try app.getResponse(to: "\(usersURI)/\(user.id!)", decodeTo: User.Public.self,
+                                           loggedInRequest: true)
     
     XCTAssertEqual(receivedUser.name, usersName)
     XCTAssertEqual(receivedUser.username, usersUserName)

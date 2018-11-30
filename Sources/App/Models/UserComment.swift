@@ -18,17 +18,22 @@ final class UserComment: Codable {
 
 extension UserComment: PostgreSQLModel {}
 extension UserComment: Content {}
+extension UserComment: Parameter {}
 extension UserComment: Equatable {
   static func ==(lhs: UserComment, rhs: UserComment) -> Bool {
     return lhs.timestamp == rhs.timestamp && lhs.comment == rhs.comment
   }
 }
-extension UserComment: Parameter {}
+
 
 // Adds a computed property that returns Fluents generic Parent type using Fluents parent( :) function
 extension UserComment {
   var user: Parent<UserComment, User> {
     return parent(\.userID)
+  }
+  // For the Pivot relationships
+  var categories: Siblings<UserComment, Category, UserCommentCategoryPivot> {
+    return siblings()  // Fluent returns all the categories of a comment
   }
 }
 
@@ -44,9 +49,9 @@ extension UserComment: Migration {
     }
   }
   
-  // For the Pivot relationships
-  var categories: Siblings<UserComment, Category, UserCommentCategoryPivot> {
-    return siblings()  // Fluent returns all the categories of a comment
-  }
+//  // For the Pivot relationships
+//  var categories: Siblings<UserComment, Category, UserCommentCategoryPivot> {
+//    return siblings()  // Fluent returns all the categories of a comment
+//  }
 }
 

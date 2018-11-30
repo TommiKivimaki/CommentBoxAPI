@@ -1,5 +1,6 @@
 import Vapor
 import Fluent
+import Authentication
 
 struct UserCommentsController: RouteCollection {
   
@@ -10,20 +11,23 @@ struct UserCommentsController: RouteCollection {
     
     // Create a group for /api/comments/ path to make maintenance easier
     let userCommentsRoutes = router.grouped("api", "comments")
-    
     userCommentsRoutes.get(use: getAllHandler)
-    userCommentsRoutes.post(UserComment.self, use: createHandler)
     userCommentsRoutes.get(UserComment.parameter, use: getHandler)
-    userCommentsRoutes.put(UserComment.parameter, use: updateHandler)
-    userCommentsRoutes.delete(UserComment.parameter, use: deleteHandler)
     userCommentsRoutes.get("search", use: searchHandler)
     userCommentsRoutes.get("searchor", use: searchOrHandler)
     userCommentsRoutes.get("first", use: getFirstHandler)
     userCommentsRoutes.get("sorted", use: sortedHandler)
     userCommentsRoutes.get(UserComment.parameter, "user", use: getUserHandler)
-    userCommentsRoutes.post(UserComment.parameter, "categories", Category.parameter, use: addCategoriesHandler)
     userCommentsRoutes.get(UserComment.parameter, "categories", use: getCategoriesHandler)
-    userCommentsRoutes.delete(UserComment.parameter, "categories", Category.parameter, use: removeCategoriesHandler)
+    
+    let tokenAuthMiddleware = User.tokenAuthMiddleware()
+    let guardAuthMiddleware = User.guardAuthMiddleware()
+    let tokenAuthGroup = userCommentsRoutes.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+    tokenAuthGroup.post(UserCommentCreateData.self, use: createHandler)
+    tokenAuthGroup.post(UserComment.parameter, "categories", Category.parameter, use: addCategoriesHandler)
+    tokenAuthGroup.put(UserComment.parameter, use: updateHandler)
+    tokenAuthGroup.delete(UserComment.parameter, use: deleteHandler)
+    tokenAuthGroup.delete(UserComment.parameter, "categories", Category.parameter, use: removeCategoriesHandler)
   }
   
   /// Returns "Hello"
@@ -37,9 +41,9 @@ struct UserCommentsController: RouteCollection {
   }
   
   /// Creates a new comment (POST)
-  /// - parameters:
-  ///     - userComment: Decode parameter for the JSON in the POST request body
-  func createHandler(_ req: Request, userComment: UserComment) throws -> Future<UserComment> {
+  func createHandler(_ req: Request, data: UserCommentCreateData) throws -> Future<UserComment> {
+    let user = try req.requireAuthenticated(User.self)
+    let userComment = try UserComment(timestamp: data.timestamp, userComment: data.comment, userID: user.requireID())
     return userComment.save(on: req)
   }
   
@@ -52,12 +56,12 @@ struct UserCommentsController: RouteCollection {
   func updateHandler(_ req: Request) throws -> Future<UserComment> {
     return try flatMap(to: UserComment.self,
                        req.parameters.next(UserComment.self),
-                       req.content.decode(UserComment.self)) { userComment, updateUserComment in
+                       req.content.decode(UserCommentCreateData.self)) { userComment, updateData in
                         
-                        userComment.timestamp = updateUserComment.timestamp
-                        userComment.comment = updateUserComment.comment
-                        userComment.userID = updateUserComment.userID
-                        
+                        userComment.timestamp = updateData.timestamp ?? ""
+                        userComment.comment = updateData.comment
+                        let user = try req.requireAuthenticated(User.self)
+                        userComment.userID = try user.requireID()
                         return userComment.save(on: req)
     }
   }
@@ -106,10 +110,10 @@ struct UserCommentsController: RouteCollection {
   }
   
   /// Get the parent a.k.a user of the comment
-  func getUserHandler(_ req: Request) throws -> Future<User> {
+  func getUserHandler(_ req: Request) throws -> Future<User.Public> {
     return try req.parameters.next(UserComment.self)
-      .flatMap(to: User.self) { userComment in
-        userComment.user.get(on: req)
+      .flatMap(to: User.Public.self) { userComment in
+        userComment.user.get(on: req).convertToPublic()
     }
   }
   
@@ -143,4 +147,10 @@ struct UserCommentsController: RouteCollection {
     }
   }
   
+}
+
+// Defines the request data user has to send to create a comment.
+struct UserCommentCreateData: Content {
+  let comment: String
+  let timestamp: String?
 }
