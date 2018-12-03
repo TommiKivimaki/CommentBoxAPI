@@ -130,7 +130,7 @@ extension Application {
   }
   
   
-  /// Convenience method: Send a request without a body and don't care about the response. 
+  /// Convenience method: Send a request and don't care about the response. 
   func sendRequest<T>(to path: String,
                       method: HTTPMethod,
                       headers: HTTPHeaders,

@@ -27,14 +27,14 @@ extension User {
 }
 
 extension UserComment {
-  static func create(comment: String = "test comment", user: User? = nil, on connection: PostgreSQLConnection ) throws -> UserComment {
+  static func create(timestamp: String = "No time", comment: String = "test comment", user: User? = nil, on connection: PostgreSQLConnection ) throws -> UserComment {
     
     var userCommentsUser = user
     if userCommentsUser == nil {
       userCommentsUser = try User.create(on: connection)
     }
     
-    let userComment = UserComment(timestamp: "Maanantaina, Valmetilla", userComment: "Testikommentti", userID: userCommentsUser!.id!)
+    let userComment = UserComment(timestamp: timestamp, userComment: comment, userID: userCommentsUser!.id!)
     
     return try userComment.save(on: connection).wait()
   }
