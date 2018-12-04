@@ -75,6 +75,12 @@ extension User: TokenAuthenticatable {
   typealias TokenType = Token  // Tell Vapor what type a token is
 }
 
+extension User: PasswordAuthenticatable {
+  // All the necessary properties are already implemented in BasicAuthenticable
+}
+extension User: SessionAuthenticatable {
+  // Allows Vapor to save and retrieve user as part of a session
+}
 
 struct AdminUser: Migration {
   typealias Database = PostgreSQLDatabase

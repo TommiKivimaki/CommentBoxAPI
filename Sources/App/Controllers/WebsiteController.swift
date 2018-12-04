@@ -1,29 +1,55 @@
 import Vapor
 import Leaf
 import Fluent
+import Authentication
 
 struct WebsiteController: RouteCollection {
   func boot(router: Router) throws {
     
-    router.get(use: indexHandler)
-    router.get("comments", UserComment.parameter, use: userCommentHandler)
-    router.get("users", User.parameter, use: userHandler)
-    router.get("users", use: allUsersHandler)
-    router.get("categories", use: allCategoriesHandler)
-    router.get("categories", Category.parameter, use: categoriesHandler)
-    router.get("comments", "create", use: createUserCommentHandler)
-    router.post(CreateUserCommentData.self, at: "comments", "create", use: createUserCommentPostHandler)
-    router.get("comments", UserComment.parameter, "edit", use: editUserCommentHandler)
-    router.post("comments", UserComment.parameter, "edit", use: editUserCommentPostHandler)
-    router.post("comments", UserComment.parameter, "delete", use: deleteUserCommentHandler)
+    let authSessionRoutes = router.grouped(User.authSessionsMiddleware())
+    authSessionRoutes.get(use: indexHandler)
+    authSessionRoutes.get("comments", UserComment.parameter, use: userCommentHandler)
+    authSessionRoutes.get("users", User.parameter, use: userHandler)
+    authSessionRoutes.get("users", use: allUsersHandler)
+    authSessionRoutes.get("categories", use: allCategoriesHandler)
+    authSessionRoutes.get("categories", Category.parameter, use: categoriesHandler)
+    authSessionRoutes.get("login", use: loginHandler)
+    authSessionRoutes.post(LoginPostData.self, at: "login", use: loginPostHandler)
+    authSessionRoutes.post("logout", use: logoutHandler)
+    
+    
+    let protectedRoutes = authSessionRoutes.grouped(RedirectMiddleware<User>(path: "/login"))
+    protectedRoutes.get("comments", "create", use: createUserCommentHandler)
+    protectedRoutes.post(CreateUserCommentData.self, at: "comments", "create", use: createUserCommentPostHandler)
+    protectedRoutes.get("comments", UserComment.parameter, "edit", use: editUserCommentHandler)
+    protectedRoutes.post("comments", UserComment.parameter, "edit", use: editUserCommentPostHandler)
+    protectedRoutes.post("comments", UserComment.parameter, "delete", use: deleteUserCommentHandler)
+    
+    //    router.get(use: indexHandler)
+    //    router.get("comments", UserComment.parameter, use: userCommentHandler)
+    //    router.get("users", User.parameter, use: userHandler)
+    //    router.get("users", use: allUsersHandler)
+    //    router.get("categories", use: allCategoriesHandler)
+    //    router.get("categories", Category.parameter, use: categoriesHandler)
+    //    router.get("comments", "create", use: createUserCommentHandler)
+    //    router.post(CreateUserCommentData.self, at: "comments", "create", use: createUserCommentPostHandler)
+    //    router.get("comments", UserComment.parameter, "edit", use: editUserCommentHandler)
+    //    router.post("comments", UserComment.parameter, "edit", use: editUserCommentPostHandler)
+    //    router.post("comments", UserComment.parameter, "delete", use: deleteUserCommentHandler)
+    //    router.get("login", use: loginHandler)
+    //    router.post(LoginPostData.self, at: "login", use: loginPostHandler)
   }
   
   func indexHandler(_ req: Request) throws -> Future<View> {
+    // Check if request contains authenticated user
+    let userLoggedIn = try req.isAuthenticated(User.self)
     return UserComment.query(on: req)
       .all()
       .flatMap(to: View.self) { userComments in
         let userCommentsData = userComments.isEmpty ? nil : userComments
-        let context = IndexContent(title: "Comment Box", userComments: userCommentsData)
+        // Check if cookies-accepted exists
+        let showCookieMessage = req.http.cookies["cookies-accepted"] == nil
+        let context = IndexContext(title: "Comment Box", userLoggedIn: userLoggedIn, userComments: userCommentsData, showCookieMessage: showCookieMessage)
         return try req.view().render("index", context)
     }
   }
@@ -85,19 +111,24 @@ struct WebsiteController: RouteCollection {
   // Next 2 handlers take care of creating a new handler page and functionality
   // GET handler for the page to get all the users
   func createUserCommentHandler(_ req: Request) throws -> Future<View> {
-    let context = CreateUserCommentContext(users: User.query(on: req).all())
+    // Creates CSRF token
+    let token = try CryptoRandom().generateData(count: 16).base64EncodedString()
+    let context = CreateUserCommentContext(csrfToken: token)
+    try req.session()["CSRF_TOKEN"] = token // Save the token into the session under CSRF_TOKEN key
+    
     return try req.view().render("createComment", context)
   }
+  
   // POST handler to process the form data
-  //  func createUserCommentPostHandler(_ req: Request, userComment: UserComment) throws -> Future<Response> {
-  //    return userComment.save(on: req)
-  //      .map(to: Response.self) { userComment in
-  //        guard let id = userComment.id else { throw Abort(.internalServerError) }
-  //        return req.redirect(to: "/comments/\(id)")
-  //    }
-  //  }
   func createUserCommentPostHandler(_ req: Request, data: CreateUserCommentData) throws -> Future<Response> {
-    let userComment = UserComment(timestamp: data.timestamp, userComment: data.comment, userID: data.userID)
+    // Check the CSRF_TOKEN
+    let expectedToken = try req.session()["CSRF_TOKEN"]
+    try req.session()["CSRF_TOKEN"] = nil
+    guard expectedToken == data.csrfToken else { throw Abort(.badRequest) }
+    
+    // Get the user from the req. We know there is a user since this path requires authentication
+    let user = try req.requireAuthenticated(User.self)
+    let userComment = UserComment(timestamp: data.timestamp, userComment: data.comment, userID: try user.requireID())
     return userComment.save(on: req)
       .flatMap(to: Response.self) { userComment in
         guard let id = userComment.id else { throw Abort(.internalServerError) }
@@ -117,20 +148,21 @@ struct WebsiteController: RouteCollection {
   func editUserCommentHandler(_ req: Request) throws -> Future<View> {
     return try req.parameters.next(UserComment.self)
       .flatMap(to: View.self) { userComment in
-        //        let context = EditUserCommentContext(userComment: userComment, users: User.query(on: req).all())
         let categories = try userComment.categories.query(on: req).all()
-        let context = EditUserCommentContext(userComment: userComment, users: User.query(on: req).all(), categories: categories)
+        let context = EditUserCommentContext(userComment: userComment, categories: categories)
         return try req.view().render("createComment", context)
     }
   }
   // POST request for editing a comment => Processing the form data from the page
   func editUserCommentPostHandler(_ req: Request) throws -> Future<Response> {
+    // Get the user from the req. We know there is a user since this path requires authentication
+    let user = try req.requireAuthenticated(User.self)
     return try flatMap(to: Response.self,
                        req.parameters.next(UserComment.self),
                        req.content.decode(CreateUserCommentData.self)) { userComment, data in
                         userComment.comment = data.comment
                         userComment.timestamp = data.timestamp
-                        userComment.userID = data.userID
+                        userComment.userID = try user.requireID()
                         
                         return userComment.save(on: req).flatMap(to: Response.self) { savedUserComment in
                           guard let id = savedUserComment.id else { throw Abort(.internalServerError) }
@@ -168,12 +200,47 @@ struct WebsiteController: RouteCollection {
       .transform(to: req.redirect(to: "/"))
   }
   
+  
+  // Handles the login web page
+  func loginHandler(_ req: Request) throws -> Future<View> {
+    let context: LoginContext
+    
+    // If request contains error parameter, create a context with loginError set to true
+    if req.query[Bool.self, at: "error"] != nil {
+      context = LoginContext(loginError: true)
+    } else {
+      context = LoginContext()
+    }
+    
+    return try req.view().render("login", context)
+  }
+  
+  // Decodes the POST data sent from login page
+  func loginPostHandler(_ req: Request, userData: LoginPostData ) throws -> Future<Response> {
+    // Check the user against database and verify the BCrypt hash. Returns nil if it fails
+    return User.authenticate(username: userData.username, password: userData.password, using: BCryptDigest(), on: req).map(to: Response.self) { user in
+      // Check if authentication fails.
+      guard let user = user else { return req.redirect(to: "/login?error") }
+      try req.authenticateSession(user)
+      return req.redirect(to: "/")
+    }
+  }
+  
+  
+  // Handles the log out. There's no async work on this handler, so there no need to return a Future<Response>
+  func logoutHandler(_ req: Request) throws -> Response {
+    try req.unauthenticateSession(User.self)
+    return req.redirect(to: "/")
+  }
+  
 }
 
 // Data for index view.
-struct IndexContent: Encodable {
+struct IndexContext: Encodable {
   let title: String
+  let userLoggedIn: Bool
   let userComments: [UserComment]?
+  let showCookieMessage: Bool
 }
 
 // Data for UserComment context to show a detailed view
@@ -214,21 +281,44 @@ struct CategoryContext: Encodable {
 
 struct CreateUserCommentContext: Encodable {
   let title = "Create Comment"
-  let users: Future<[User]>
+  let csrfToken: String
 }
 
 struct EditUserCommentContext: Encodable {
   let title = "Edit Comment"
   let userComment: UserComment
-  let users: Future<[User]>
   let editing = true // Flag to tell the template that the page is for editing
   let categories: Future<[Category]>
 }
 
 // For creating or attaching category to a comment in web app
 struct CreateUserCommentData: Content {
-  let userID: User.ID
   let comment: String
   let timestamp: String
   let categories: [String]?
+  let csrfToken: String? // Optional so that decoding succeeds even if token is missing. `Guard let` check can then respond
+                         // with .badRequest from createUserCommentPostHandler
 }
+
+
+
+//
+// For Login page
+//
+
+struct LoginContext: Encodable {
+  let title = "Log in"
+  let loginError: Bool
+  
+  init(loginError: Bool = false) {
+    self.loginError = loginError
+  }
+}
+
+struct LoginPostData: Content {
+  let username: String
+  let password: String
+}
+
+
+

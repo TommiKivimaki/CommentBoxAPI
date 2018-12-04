@@ -26,6 +26,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
   middlewares.use(corsMiddleware)
   middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
   middlewares.use(ErrorMiddleware.self)
+  middlewares.use(SessionsMiddleware.self)
   services.register(middlewares)
 
   /// Configure database for Vapor Cloud deployment
@@ -73,5 +74,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
   
   // Configure a preferred Leaf renderer
   config.prefer(LeafRenderer.self, for: ViewRenderer.self)
+  // Key-Value cache that backs SessionMiddleware
+  config.prefer(MemoryKeyedCache.self, for: KeyedCache.self)
   
 }

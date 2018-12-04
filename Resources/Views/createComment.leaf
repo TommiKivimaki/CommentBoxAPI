@@ -4,6 +4,10 @@
 
 <form method="post">
   
+  #if(csrfToken) {
+    <input type="hidden" name="csrfToken" value="#(csrfToken)">
+  }
+  
   <div class="form-group">
     <label for="userComment">Comment</label>
     <input type="text" name="comment" class="form-control"
@@ -16,19 +20,6 @@
     id="timestamp" #if(editing){value="#(userComment.timestamp)"}/>
   </div>
   
-  <div class="form-group">
-    <label for="userID">User</label>
-    
-    <select name="userID" class="form-control" id="userID">
-      
-      #for(user in users) {
-      <option value="#(user.id)">
-        #if(editing){#if(userComment.userID == user.id){selected}}
-        #(user.name)
-      </option>
-      }
-    </select>
-  </div>
   
   <div class="form-group">
     <label for="categories">Categories</label>
