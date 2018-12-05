@@ -16,7 +16,8 @@ struct WebsiteController: RouteCollection {
     authSessionRoutes.get("login", use: loginHandler)
     authSessionRoutes.post(LoginPostData.self, at: "login", use: loginPostHandler)
     authSessionRoutes.post("logout", use: logoutHandler)
-    
+    authSessionRoutes.get("register", use: registerHandler)
+    authSessionRoutes.post(RegisterData.self, at: "register", use: registerPostHandler)
     
     let protectedRoutes = authSessionRoutes.grouped(RedirectMiddleware<User>(path: "/login"))
     protectedRoutes.get("comments", "create", use: createUserCommentHandler)
@@ -233,6 +234,46 @@ struct WebsiteController: RouteCollection {
     return req.redirect(to: "/")
   }
   
+  // For the Register page
+  func registerHandler(_ req: Request) throws -> Future<View> {
+    let context: RegisterContext
+    // If query includes a message `/register?message=some-string` include the message into the context to show in page
+    if let message = req.query[String.self, at: "message"] {
+      context = RegisterContext(message: message)
+    } else {
+      context = RegisterContext()
+    }
+    return try req.view().render("register", context)
+  }
+  
+  // POST handler for the Register page
+  // FIXME: This does not handle the error case of unique key constraint violation! Proper error message should be displayed. Now
+  // the unique key value violation just send error text to web page. Should first check if user exists then either show an eror message or save user.
+  func registerPostHandler(_ req: Request, data: RegisterData) throws -> Future<Response> {
+   // Validate the post data first
+    do {
+      try data.validate()
+    } catch (let error) {
+      let redirect: String
+      if let error = error as? ValidationError,
+        let message = error.reason.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+        redirect = "/register?message=\(message)"
+      } else {
+        redirect = "/register?message=Unknown+Error"
+      }
+      
+      return req.future(req.redirect(to: redirect))
+    }
+    
+    // Hash the password and store it
+    let password = try BCrypt.hash(data.password)
+    let user = User(name: data.name, username: data.username, password: password)
+    return user.save(on: req).map(to: Response.self) { user in
+      try req.authenticateSession(user)
+      return req.redirect(to: "/")
+    }
+  }
+  
 }
 
 // Data for index view.
@@ -320,5 +361,35 @@ struct LoginPostData: Content {
   let password: String
 }
 
-
-
+// Context for Register page
+struct RegisterContext: Encodable {
+  let title = "Register"
+  let message: String?
+  
+  init(message: String? = nil) {
+    self.message = message
+  }
+}
+// Data received from the form in Register page
+struct RegisterData: Content {
+  let name: String
+  let username: String
+  let password: String
+  let confirmPassword: String
+}
+// Validate the data send from the Register page form
+extension RegisterData: Validatable, Reflectable {
+  static func validations() throws -> Validations<RegisterData> {
+    var validations = Validations(RegisterData.self)
+    try validations.add(\.name, .ascii)
+    try validations.add(\.username, .alphanumeric && .count(3...))
+    try validations.add(\.password, .count(8...))
+    
+    // custom validation to check that the passwords match
+    validations.add("passwords match") { model in
+      guard model.password == model.confirmPassword else { throw BasicValidationError("Passwords don't match") }
+    }
+    
+    return validations
+  }
+}
