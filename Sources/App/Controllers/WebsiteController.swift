@@ -275,11 +275,30 @@ struct WebsiteController: RouteCollection {
     }
     
     // Create User and save
-    let user = User(name: data.name, username: data.username, password: password, twitterURL: twitterURL)
-    return user.save(on: req).map(to: Response.self) { user in
-      try req.authenticateSession(user)
-      return req.redirect(to: "/")
+    
+    // My solution to check if user exists. Replace this with the original down below if you face some problems. 
+    return User.query(on: req)
+      .filter(\.username == data.username)
+      .first()
+      .flatMap(to: Response.self) { foundUser in
+        
+        if let existingUser = foundUser {
+          return Future.map(on: req) { req.redirect(to: "/register?message=User+Exists") }
+        } else {
+          let user = User(name: data.name, username: data.username, password: password, twitterURL: twitterURL)
+          return user.save(on: req).map(to: Response.self) { user in
+            try req.authenticateSession(user)
+            return req.redirect(to: "/")
+          }
+        }
     }
+    
+    // Original TIL app solution. Does not check if user exists
+//    let user = User(name: data.name, username: data.username, password: password, twitterURL: twitterURL)
+//    return user.save(on: req).map(to: Response.self) { user in
+//      try req.authenticateSession(user)
+//      return req.redirect(to: "/")
+//    }
   }
   
 }
