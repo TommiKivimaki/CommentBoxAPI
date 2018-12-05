@@ -19,6 +19,7 @@ extension Category {
     return siblings()
   }
   
+  // Checks first if category already exists before creating one
   static func addCategory(_ name: String, to userComment: UserComment, on req: Request) throws -> Future<Void> {
     return Category.query(on: req)
       .filter(\.name == name)

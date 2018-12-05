@@ -8,11 +8,13 @@ final class User: Codable {
   var name: String
   var username: String
   var password: String
+  var twitterURL: String?
   
-  init(name: String, username: String, password: String) {
+  init(name: String, username: String, password: String, twitterURL: String? = nil) {
     self.name = name
     self.username = username
     self.password = password
+    self.twitterURL = twitterURL
   }
   
   // Inner class to represent a public view of the user
@@ -20,11 +22,13 @@ final class User: Codable {
     var id: UUID?
     var name: String
     var username: String
+    var twitterURL: String?
     
-    init(id: UUID?, name: String, username: String) {
+    init(id: UUID?, name: String, username: String, twitterURL: String? = nil) {
       self.id = id
       self.name = name
       self.username = username
+      self.twitterURL = twitterURL
     }
   }
 }
@@ -34,7 +38,14 @@ extension User: Content {}
 extension User: Migration {
   static func prepare(on connection: PostgreSQLConnection) -> Future<Void> {
     return Database.create(self, on: connection) { builder in  // Creates User table
-      try addProperties(to: builder)                           // Add all the columns to the User table based on User's properties
+//      try addProperties(to: builder)                        // Adds all the columns to the User table based on User's properties
+      
+      // Manually add only original fields. If e.g. for testing db is reverted it's important that only the original fields
+      // are added in the initial migration. Thus manually adding fields here. 
+      builder.field(for: \.id, isIdentifier: true)
+      builder.field(for: \.name)
+      builder.field(for: \.username)
+      builder.field(for: \.password)
       builder.unique(on: \.username) // Add a unique constraint to User's username
     }
   }
@@ -47,7 +58,7 @@ extension User {
 }
 extension User {
   func convertToPublic() -> User.Public {
-    return User.Public(id: id, name: name, username: username)
+    return User.Public(id: id, name: name, username: username, twitterURL: twitterURL)
   }
 }
 

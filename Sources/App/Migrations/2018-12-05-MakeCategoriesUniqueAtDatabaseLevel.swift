@@ -1,0 +1,18 @@
+import FluentPostgreSQL
+import Vapor
+
+struct MakeCategoriesUniqueAtDatabaseLevel: Migration {
+  typealias Database = PostgreSQLDatabase
+  
+  static func prepare(on conn: PostgreSQLConnection) -> EventLoopFuture<Void> {
+    return Database.update(Category.self, on: conn) { builder in
+      builder.unique(on: \.name)
+    }
+  }
+  
+  static func revert(on conn: PostgreSQLConnection) -> EventLoopFuture<Void> {
+    return Database.update(Category.self, on: conn) { builder in
+      builder.deleteUnique(from: \.name)
+    }
+  }
+}
